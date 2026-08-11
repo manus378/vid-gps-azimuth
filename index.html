@@ -1,276 +1,856 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>태블릿 카메라 & 센서 데이터 레코더</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <title>Tablet Camera + GPS + Heading Logger</title>
+
   <style>
     * {
       box-sizing: border-box;
+    }
+
+    html, body {
       margin: 0;
-      padding: 0;
-    }
-    body {
-      background-color: #121212;
-      color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      padding: 15px;
-    }
-    h1 {
-      font-size: 1.4rem;
-      margin-bottom: 12px;
-      color: #4da6ff;
-    }
-    #video-container {
-      position: relative;
-      width: 100%;
-      max-width: 960px;
-      aspect-ratio: 16 / 9;
-      background-color: #000;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    }
-    canvas {
       width: 100%;
       height: 100%;
-      display: block;
+      background: #0b0f16;
+      color: #ffffff;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      overflow: hidden;
     }
-    .controls {
-      margin-top: 15px;
+
+    body {
       display: flex;
-      gap: 12px;
-      width: 100%;
-      max-width: 960px;
+      flex-direction: column;
     }
+
+    .topbar {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #111827;
+      border-bottom: 1px solid #2b3545;
+      z-index: 10;
+    }
+
+    .title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-right: auto;
+      white-space: nowrap;
+    }
+
     button {
-      flex: 1;
-      padding: 16px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      border-radius: 8px;
-      border: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-size: 15px;
+      font-weight: 700;
       cursor: pointer;
-      transition: background-color 0.2s, opacity 0.2s;
     }
+
     button:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
+      opacity: 0.45;
+      cursor: default;
     }
-    .btn-start {
-      background-color: #28a745;
-      color: white;
+
+    #startBtn {
+      background: #16a34a;
+      color: #fff;
     }
-    .btn-start:hover:not(:disabled) {
-      background-color: #218838;
+
+    #saveStopBtn {
+      background: #dc2626;
+      color: #fff;
     }
-    .btn-stop {
-      background-color: #dc3545;
-      color: white;
+
+    #stopBtn {
+      background: #4b5563;
+      color: #fff;
     }
-    .btn-stop:hover:not(:disabled) {
-      background-color: #c82333;
+
+    .main {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      background: #000;
     }
-    #status-bar {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      color: #aaa;
+
+    #video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .status {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      max-width: calc(100% - 24px);
+      padding: 8px 11px;
+      border-radius: 9px;
+      background: rgba(0,0,0,0.58);
+      font-size: 13px;
+      line-height: 1.4;
+      backdrop-filter: blur(4px);
+    }
+
+    .record-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 700;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      display: none;
+    }
+
+    .recording .dot {
+      display: inline-block;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0.2; }
+    }
+
+    .panel {
+      flex: 0 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      background: #263244;
+      border-top: 1px solid #263244;
+    }
+
+    .metric {
+      background: #111827;
+      padding: 12px 14px;
+      min-width: 0;
+    }
+
+    .metric-label {
+      color: #9ca3af;
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .metric-value {
+      font-size: 21px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sub {
+      margin-top: 4px;
+      color: #94a3b8;
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .notice {
+      flex: 0 0 auto;
+      background: #172033;
+      color: #cbd5e1;
+      font-size: 11px;
+      line-height: 1.45;
+      padding: 6px 10px;
+    }
+
+    @media (max-width: 760px) {
+      .title {
+        display: none;
+      }
+
+      .topbar {
+        gap: 6px;
+        padding: 8px;
+      }
+
+      button {
+        flex: 1;
+        padding: 10px 8px;
+        font-size: 13px;
+      }
+
+      .panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric {
+        padding: 9px 11px;
+      }
+
+      .metric-value {
+        font-size: 17px;
+      }
     }
   </style>
 </head>
+
 <body>
-
-  <h1>카메라 & 센서 데이터 레코더</h1>
-
-  <div id="video-container">
-    <canvas id="recordCanvas" width="1280" height="720"></canvas>
+  <div class="topbar">
+    <div class="title">Camera / GPS / Heading Logger</div>
+    <button id="startBtn">시작</button>
+    <button id="saveStopBtn" disabled>저장 및 종료</button>
+    <button id="stopBtn" disabled>그냥 종료</button>
   </div>
 
-  <div class="controls">
-    <button id="startBtn" class="btn-start">녹화 & 데이터 수집 시작</button>
-    <button id="stopBtn" class="btn-stop" disabled>녹화 중지 & 저장</button>
+  <main class="main">
+    <video id="video" autoplay playsinline muted></video>
+
+    <div id="statusBox" class="status">
+      <span class="record-indicator">
+        <span class="dot"></span>
+        <span id="statusText">대기 중</span>
+      </span>
+    </div>
+  </main>
+
+  <section class="panel">
+    <div class="metric">
+      <div class="metric-label">위도 Latitude</div>
+      <div id="latitude" class="metric-value">-</div>
+      <div id="gpsAccuracy" class="sub">정확도: -</div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">경도 Longitude</div>
+      <div id="longitude" class="metric-value">-</div>
+      <div id="altitude" class="sub">고도: -</div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">방위각 Heading</div>
+      <div id="heading" class="metric-value">-</div>
+      <div id="orientationRaw" class="sub">α / β / γ: -</div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">Timestamp</div>
+      <div id="timestamp" class="metric-value">-</div>
+      <div id="elapsed" class="sub">경과: -</div>
+    </div>
+  </section>
+
+  <div class="notice">
+    카메라·위치·센서 사용을 위해 HTTPS 또는 localhost 환경을 권장합니다.
+    CSV에는 timestamp, elapsed time, GPS, accuracy, altitude, heading, α/β/γ 값을 함께 기록합니다.
   </div>
 
-  <div id="status-bar">상태: 카메라 및 센서 준비 중...</div>
+<script>
+(() => {
+  "use strict";
 
-  <!-- 비동기 오프스크린 비디오 태그 -->
-  <video id="webcam" autoplay playsinline style="display:none;"></video>
+  const video = document.getElementById("video");
+  const startBtn = document.getElementById("startBtn");
+  const saveStopBtn = document.getElementById("saveStopBtn");
+  const stopBtn = document.getElementById("stopBtn");
+  const statusBox = document.getElementById("statusBox");
+  const statusText = document.getElementById("statusText");
 
-  <script>
-    const video = document.getElementById('webcam');
-    const canvas = document.getElementById('recordCanvas');
-    const ctx = canvas.getContext('2d');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const statusBar = document.getElementById('status-bar');
+  const latitudeEl = document.getElementById("latitude");
+  const longitudeEl = document.getElementById("longitude");
+  const gpsAccuracyEl = document.getElementById("gpsAccuracy");
+  const altitudeEl = document.getElementById("altitude");
+  const headingEl = document.getElementById("heading");
+  const orientationRawEl = document.getElementById("orientationRaw");
+  const timestampEl = document.getElementById("timestamp");
+  const elapsedEl = document.getElementById("elapsed");
 
-    let currentGPS = { lat: 0, lng: 0, alt: 0, accuracy: 0 };
-    let currentAzimuth = 0;
-    let dataLogs = [];
-    let isRecording = false;
-    let mediaRecorder;
-    let recordedChunks = [];
+  let stream = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
+  let sensorLog = [];
+  let geolocationWatchId = null;
+  let logTimer = null;
+  let uiTimer = null;
+  let wakeLock = null;
 
-    // 1. 후면 카메라 초기화
-    async function initCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { exact: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
-        });
-        video.srcObject = stream;
-        statusBar.innerText = "상태: 후면 카메라 연결 완료";
-      } catch (e) {
-        console.warn("후면 카메라 전용 접근 실패, 기본 카메라로 대체합니다.", e);
-        try {
-          const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true });
-          video.srcObject = fallbackStream;
-          statusBar.innerText = "상태: 기본 카메라 연결 완료";
-        } catch (err) {
-          statusBar.innerText = "오류: 카메라 접근 권한이 거부되었거나 장치를 찾을 수 없습니다.";
-        }
+  let recording = false;
+  let startEpochMs = 0;
+  let startPerfMs = 0;
+  let fileBaseName = "";
+
+  let currentGPS = {
+    latitude: null,
+    longitude: null,
+    accuracy: null,
+    altitude: null,
+    altitudeAccuracy: null,
+    speed: null,
+    heading: null,
+    gpsTimestamp: null
+  };
+
+  let currentOrientation = {
+    alpha: null,
+    beta: null,
+    gamma: null,
+    heading: null,
+    absolute: null
+  };
+
+  function setStatus(text, isRecording = false) {
+    statusText.textContent = text;
+    statusBox.classList.toggle("recording", isRecording);
+  }
+
+  function pad(n, size = 2) {
+    return String(n).padStart(size, "0");
+  }
+
+  function createBaseName(date = new Date()) {
+    return [
+      "capture_",
+      date.getFullYear(),
+      pad(date.getMonth() + 1),
+      pad(date.getDate()),
+      "_",
+      pad(date.getHours()),
+      pad(date.getMinutes()),
+      pad(date.getSeconds())
+    ].join("");
+  }
+
+  function formatTime(ms) {
+    const d = new Date(ms);
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`;
+  }
+
+  function formatElapsed(ms) {
+    const totalSec = ms / 1000;
+    return `${totalSec.toFixed(3)} s`;
+  }
+
+  function numberOrBlank(value, digits = null) {
+    if (value === null || value === undefined || Number.isNaN(value)) return "";
+    return digits === null ? value : Number(value).toFixed(digits);
+  }
+
+  function updateUI() {
+    const now = Date.now();
+
+    latitudeEl.textContent =
+      currentGPS.latitude == null ? "-" : currentGPS.latitude.toFixed(7);
+
+    longitudeEl.textContent =
+      currentGPS.longitude == null ? "-" : currentGPS.longitude.toFixed(7);
+
+    gpsAccuracyEl.textContent =
+      currentGPS.accuracy == null
+        ? "정확도: -"
+        : `정확도: ±${currentGPS.accuracy.toFixed(1)} m`;
+
+    altitudeEl.textContent =
+      currentGPS.altitude == null
+        ? "고도: -"
+        : `고도: ${currentGPS.altitude.toFixed(1)} m`;
+
+    headingEl.textContent =
+      currentOrientation.heading == null
+        ? "-"
+        : `${currentOrientation.heading.toFixed(1)}°`;
+
+    const a = currentOrientation.alpha;
+    const b = currentOrientation.beta;
+    const g = currentOrientation.gamma;
+
+    orientationRawEl.textContent =
+      `α / β / γ: ${a == null ? "-" : a.toFixed(1)} / ${b == null ? "-" : b.toFixed(1)} / ${g == null ? "-" : g.toFixed(1)}`;
+
+    timestampEl.textContent = formatTime(now);
+
+    elapsedEl.textContent =
+      recording ? `경과: ${formatElapsed(performance.now() - startPerfMs)}` : "경과: -";
+  }
+
+  function onPosition(position) {
+    const c = position.coords;
+
+    currentGPS = {
+      latitude: c.latitude,
+      longitude: c.longitude,
+      accuracy: c.accuracy,
+      altitude: c.altitude,
+      altitudeAccuracy: c.altitudeAccuracy,
+      speed: c.speed,
+      heading: c.heading,
+      gpsTimestamp: position.timestamp
+    };
+  }
+
+  function normalizeHeading(deg) {
+    return ((deg % 360) + 360) % 360;
+  }
+
+  function onOrientation(event) {
+    const alpha = event.alpha;
+    const beta = event.beta;
+    const gamma = event.gamma;
+
+    let heading = null;
+
+    // 일부 브라우저/기기에서는 webkitCompassHeading을 직접 제공할 수 있음.
+    if (typeof event.webkitCompassHeading === "number") {
+      heading = normalizeHeading(event.webkitCompassHeading);
+    }
+    // Android Chrome 계열 fallback.
+    // alpha는 device z-axis 회전값이며, 단순 방위값으로 사용할 때 360-alpha 형태를 사용.
+    else if (typeof alpha === "number") {
+      heading = normalizeHeading(360 - alpha);
+    }
+
+    currentOrientation = {
+      alpha,
+      beta,
+      gamma,
+      heading,
+      absolute: event.absolute ?? null
+    };
+  }
+
+  function startGeolocation() {
+    if (!("geolocation" in navigator)) {
+      setStatus("이 브라우저는 위치 정보를 지원하지 않습니다.");
+      return;
+    }
+
+    geolocationWatchId = navigator.geolocation.watchPosition(
+      onPosition,
+      (err) => {
+        console.warn("Geolocation error:", err);
+        setStatus(`GPS 오류: ${err.message}`, recording);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      }
+    );
+  }
+
+  async function requestOrientationPermissionIfNeeded() {
+    try {
+      if (
+        typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function"
+      ) {
+        const response = await DeviceOrientationEvent.requestPermission();
+        return response === "granted";
+      }
+      return true;
+    } catch (e) {
+      console.warn("Orientation permission error:", e);
+      return false;
+    }
+  }
+
+  async function startOrientation() {
+    const allowed = await requestOrientationPermissionIfNeeded();
+
+    if (!allowed) {
+      setStatus("방향 센서 권한이 허용되지 않았습니다.");
+      return;
+    }
+
+    // Android Chrome에서 지원되는 경우 absolute orientation 우선.
+    if ("ondeviceorientationabsolute" in window) {
+      window.addEventListener("deviceorientationabsolute", onOrientation, true);
+    } else {
+      window.addEventListener("deviceorientation", onOrientation, true);
+    }
+  }
+
+  function stopOrientation() {
+    window.removeEventListener("deviceorientationabsolute", onOrientation, true);
+    window.removeEventListener("deviceorientation", onOrientation, true);
+  }
+
+  function logSample() {
+    if (!recording) return;
+
+    const epochMs = Date.now();
+    const perfMs = performance.now();
+
+    sensorLog.push({
+      timestamp_iso: new Date(epochMs).toISOString(),
+      timestamp_epoch_ms: epochMs,
+      elapsed_ms: perfMs - startPerfMs,
+
+      latitude: currentGPS.latitude,
+      longitude: currentGPS.longitude,
+      gps_accuracy_m: currentGPS.accuracy,
+      altitude_m: currentGPS.altitude,
+      altitude_accuracy_m: currentGPS.altitudeAccuracy,
+      gps_speed_mps: currentGPS.speed,
+      gps_course_deg: currentGPS.heading,
+      gps_timestamp_ms: currentGPS.gpsTimestamp,
+
+      heading_deg: currentOrientation.heading,
+      alpha_deg: currentOrientation.alpha,
+      beta_deg: currentOrientation.beta,
+      gamma_deg: currentOrientation.gamma,
+      orientation_absolute: currentOrientation.absolute
+    });
+  }
+
+  function chooseRecorderMimeType() {
+    const candidates = [
+      "video/webm;codecs=vp9",
+      "video/webm;codecs=vp8",
+      "video/webm"
+    ];
+
+    for (const type of candidates) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(type)) {
+        return type;
       }
     }
 
-    // 2. GPS 데이터 추적
-    function initGPS() {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.watchPosition(
-          (pos) => {
-            currentGPS.lat = pos.coords.latitude;
-            currentGPS.lng = pos.coords.longitude;
-            currentGPS.alt = pos.coords.altitude || 0;
-            currentGPS.accuracy = pos.coords.accuracy;
-          },
-          (err) => console.error("GPS 오차:", err),
-          { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-        );
-      } else {
-        statusBar.innerText = "경고: 이 브라우저는 GPS 위치 서비스를 지원하지 않습니다.";
+    return "";
+  }
+
+  async function requestWakeLock() {
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLock = await navigator.wakeLock.request("screen");
       }
+    } catch (e) {
+      console.warn("Wake lock unavailable:", e);
+    }
+  }
+
+  async function releaseWakeLock() {
+    try {
+      if (wakeLock) {
+        await wakeLock.release();
+      }
+    } catch (e) {
+      console.warn(e);
+    } finally {
+      wakeLock = null;
+    }
+  }
+
+  async function startRecording() {
+    if (recording) return;
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("이 브라우저는 카메라 API를 지원하지 않습니다.");
+      return;
     }
 
-    // 3. 지자기/가속도 센서 퓨전 방위각 수신
-    window.addEventListener("deviceorientation", (event) => {
-      if (event.alpha !== null) {
-        // 안드로이드 Chrome 기준: alpha(0~360°) 값을 자북/도북 기준 방위각으로 보정
-        let heading = 360 - event.alpha;
-        if (heading >= 360) heading -= 360;
-        currentAzimuth = heading;
-      }
-    }, true);
+    try {
+      setStatus("카메라 및 센서 준비 중...");
 
-    // 4. Canvas 실시간 오버레이 렌더링
-    function renderFrame() {
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+          frameRate: { ideal: 30, max: 30 }
+        },
+        audio: false
+      });
 
-        const now = new Date();
-        const isoTimestamp = now.toISOString();
+      video.srcObject = stream;
 
-        // 좌측 상단 자막 배경 박스
-        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-        ctx.fillRect(15, 15, 600, 130);
+      startGeolocation();
+      await startOrientation();
+      await requestWakeLock();
 
-        // 자막 텍스트
-        ctx.fillStyle = "#00FF66"; // 형광 녹색
-        ctx.font = "bold 22px monospace";
-        ctx.fillText(`TIME    : ${isoTimestamp}`, 30, 45);
-        ctx.fillText(`AZIMUTH : ${currentAzimuth.toFixed(1)}°`, 30, 75);
-        ctx.fillText(`GPS     : ${currentGPS.lat.toFixed(6)}, ${currentGPS.lng.toFixed(6)} (±${currentGPS.accuracy.toFixed(1)}m)`, 30, 105);
-        ctx.fillText(`ALTITUDE: ${currentGPS.alt.toFixed(1)}m`, 30, 130);
-
-        // 녹화 중일 때 CSV 로그 데이터 누적 (30FPS 기반)
-        if (isRecording) {
-          dataLogs.push({
-            timestamp: isoTimestamp,
-            azimuth: currentAzimuth.toFixed(2),
-            latitude: currentGPS.lat,
-            longitude: currentGPS.lng,
-            altitude: currentGPS.alt,
-            accuracy: currentGPS.accuracy
-          });
-        }
-      }
-      requestAnimationFrame(renderFrame);
-    }
-
-    // 5. 녹화 제어
-    startBtn.onclick = () => {
-      dataLogs = [];
       recordedChunks = [];
+      sensorLog = [];
+      fileBaseName = createBaseName();
 
-      const stream = canvas.captureStream(30); // Canvas 화폭 기반 30 FPS 스트림 생성
-      let options = { mimeType: 'video/webm;codecs=vp9' };
-      
-      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-        options = { mimeType: 'video/webm' };
-      }
+      const mimeType = chooseRecorderMimeType();
+      mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
 
-      mediaRecorder = new MediaRecorder(stream, options);
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) recordedChunks.push(e.data);
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
       };
 
-      mediaRecorder.onstop = exportFiles;
+      mediaRecorder.onerror = (event) => {
+        console.error("MediaRecorder error:", event);
+        setStatus("영상 녹화 오류 발생", false);
+      };
 
-      mediaRecorder.start();
-      isRecording = true;
+      startEpochMs = Date.now();
+      startPerfMs = performance.now();
+      recording = true;
+
+      // 1초 단위 Blob chunk 생성.
+      mediaRecorder.start(1000);
+
+      // 센서 로그는 10 Hz로 기록.
+      logTimer = setInterval(logSample, 100);
+
+      if (!uiTimer) {
+        uiTimer = setInterval(updateUI, 100);
+      }
+
       startBtn.disabled = true;
+      saveStopBtn.disabled = false;
       stopBtn.disabled = false;
-      statusBar.innerText = "상태: 녹화 및 센서 로그 수집 중...";
-    };
 
-    stopBtn.onclick = () => {
-      isRecording = false;
-      mediaRecorder.stop();
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-      statusBar.innerText = "상태: 파일 생성 및 다운로드 중...";
-    };
+      setStatus("녹화 중", true);
 
-    // 6. WebM 및 CSV 파일 출력 다운로드
-    function exportFiles() {
-      const fileTimestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    } catch (err) {
+      console.error(err);
+      setStatus(`시작 실패: ${err.message}`, false);
+      await cleanup(false);
+    }
+  }
 
-      // 1) 동영상 저장
-      const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
-      downloadFile(videoBlob, `record_${fileTimestamp}.webm`);
+  function csvEscape(value) {
+    if (value === null || value === undefined) return "";
+    const s = String(value);
+    if (/[",\n\r]/.test(s)) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  }
 
-      // 2) CSV 파일 생성 및 저장
-      let csvContent = "Timestamp,Azimuth(deg),Latitude,Longitude,Altitude(m),Accuracy(m)\n";
-      dataLogs.forEach(row => {
-        csvContent += `${row.timestamp},${row.azimuth},${row.latitude},${row.longitude},${row.altitude},${row.accuracy}\n`;
+  function buildCSV(rows) {
+    const headers = [
+      "timestamp_iso",
+      "timestamp_epoch_ms",
+      "elapsed_ms",
+      "latitude",
+      "longitude",
+      "gps_accuracy_m",
+      "altitude_m",
+      "altitude_accuracy_m",
+      "gps_speed_mps",
+      "gps_course_deg",
+      "gps_timestamp_ms",
+      "heading_deg",
+      "alpha_deg",
+      "beta_deg",
+      "gamma_deg",
+      "orientation_absolute"
+    ];
+
+    const lines = [headers.join(",")];
+
+    for (const row of rows) {
+      const values = headers.map((h) => {
+        let v = row[h];
+
+        if (h === "elapsed_ms" && typeof v === "number") {
+          v = v.toFixed(3);
+        } else if (
+          ["latitude", "longitude"].includes(h) &&
+          typeof v === "number"
+        ) {
+          v = v.toFixed(8);
+        } else if (
+          [
+            "gps_accuracy_m",
+            "altitude_m",
+            "altitude_accuracy_m",
+            "gps_speed_mps",
+            "gps_course_deg",
+            "heading_deg",
+            "alpha_deg",
+            "beta_deg",
+            "gamma_deg"
+          ].includes(h) &&
+          typeof v === "number"
+        ) {
+          v = v.toFixed(3);
+        }
+
+        return csvEscape(v);
       });
-      
-      const csvBlob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' }); // UTF-8 BOM 추가 (엑셀 한글 깨짐 방지)
-      downloadFile(csvBlob, `sensor_log_${fileTimestamp}.csv`);
 
-      statusBar.innerText = "상태: 동영상(.webm) 및 CSV 로그 다운로드 완료";
+      lines.push(values.join(","));
     }
 
-    function downloadFile(blob, fileName) {
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }
+    // UTF-8 BOM: Excel에서 한글/UTF-8 인식 개선
+    return "\uFEFF" + lines.join("\r\n");
+  }
 
-    // 초기화 실행
-    window.addEventListener('load', () => {
-      initCamera();
-      initGPS();
-      renderFrame();
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  }
+
+  async function stopRecorderAndWait() {
+    if (!mediaRecorder || mediaRecorder.state === "inactive") return;
+
+    await new Promise((resolve) => {
+      mediaRecorder.addEventListener("stop", resolve, { once: true });
+      mediaRecorder.stop();
     });
-  </script>
+  }
+
+  async function saveAndStop() {
+    if (!recording) return;
+
+    setStatus("저장 중...");
+    recording = false;
+
+    if (logTimer) {
+      clearInterval(logTimer);
+      logTimer = null;
+    }
+
+    // 마지막 센서 샘플 하나 추가
+    const epochMs = Date.now();
+    sensorLog.push({
+      timestamp_iso: new Date(epochMs).toISOString(),
+      timestamp_epoch_ms: epochMs,
+      elapsed_ms: performance.now() - startPerfMs,
+      latitude: currentGPS.latitude,
+      longitude: currentGPS.longitude,
+      gps_accuracy_m: currentGPS.accuracy,
+      altitude_m: currentGPS.altitude,
+      altitude_accuracy_m: currentGPS.altitudeAccuracy,
+      gps_speed_mps: currentGPS.speed,
+      gps_course_deg: currentGPS.heading,
+      gps_timestamp_ms: currentGPS.gpsTimestamp,
+      heading_deg: currentOrientation.heading,
+      alpha_deg: currentOrientation.alpha,
+      beta_deg: currentOrientation.beta,
+      gamma_deg: currentOrientation.gamma,
+      orientation_absolute: currentOrientation.absolute
+    });
+
+    await stopRecorderAndWait();
+
+    const actualType =
+      mediaRecorder && mediaRecorder.mimeType
+        ? mediaRecorder.mimeType
+        : "video/webm";
+
+    const videoBlob = new Blob(recordedChunks, { type: actualType });
+    const csvText = buildCSV(sensorLog);
+    const csvBlob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
+
+    // 두 파일에 동일한 base name 사용 → 후처리 시 쉽게 매칭 가능.
+    downloadBlob(videoBlob, `${fileBaseName}.webm`);
+
+    // 모바일 브라우저의 연속 다운로드 처리 여유
+    setTimeout(() => {
+      downloadBlob(csvBlob, `${fileBaseName}.csv`);
+    }, 500);
+
+    await cleanup(false);
+
+    setStatus(
+      `저장 완료: ${fileBaseName}.webm / ${fileBaseName}.csv`,
+      false
+    );
+  }
+
+  async function stopWithoutSaving() {
+    if (!recording && !stream) return;
+
+    const proceed = confirm(
+      "현재 촬영 데이터를 저장하지 않고 종료하시겠습니까?"
+    );
+
+    if (!proceed) return;
+
+    recording = false;
+
+    if (logTimer) {
+      clearInterval(logTimer);
+      logTimer = null;
+    }
+
+    try {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+
+    recordedChunks = [];
+    sensorLog = [];
+
+    await cleanup(false);
+    setStatus("저장하지 않고 종료했습니다.", false);
+  }
+
+  async function cleanup(resetMessage = true) {
+    if (geolocationWatchId !== null) {
+      navigator.geolocation.clearWatch(geolocationWatchId);
+      geolocationWatchId = null;
+    }
+
+    stopOrientation();
+
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      stream = null;
+    }
+
+    video.srcObject = null;
+
+    await releaseWakeLock();
+
+    mediaRecorder = null;
+    recording = false;
+
+    startBtn.disabled = false;
+    saveStopBtn.disabled = true;
+    stopBtn.disabled = true;
+
+    if (resetMessage) {
+      setStatus("대기 중", false);
+    }
+  }
+
+  startBtn.addEventListener("click", startRecording);
+  saveStopBtn.addEventListener("click", saveAndStop);
+  stopBtn.addEventListener("click", stopWithoutSaving);
+
+  document.addEventListener("visibilitychange", async () => {
+    if (document.visibilityState === "visible" && recording) {
+      await requestWakeLock();
+    }
+  });
+
+  window.addEventListener("beforeunload", (event) => {
+    if (recording) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+  });
+
+  updateUI();
+  uiTimer = setInterval(updateUI, 100);
+
+})();
+</script>
 </body>
 </html>
