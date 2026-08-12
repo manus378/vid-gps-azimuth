@@ -235,7 +235,7 @@
     </div>
 
     <div class="metric">
-      <div class="metric-label">카메라 방위각 Heading</div>
+      <div class="metric-label">방위각 Heading</div>
       <div id="heading" class="metric-value">-</div>
       <div id="orientationRaw" class="sub">α / β / γ: -</div>
     </div>
@@ -249,7 +249,7 @@
 
   <div class="notice">
     카메라·위치·센서 사용을 위해 HTTPS 또는 localhost 환경을 권장합니다.
-    CSV에는 timestamp, elapsed time, GPS, accuracy, altitude, camera heading, α/β/γ 값을 함께 기록합니다.
+    CSV에는 timestamp, elapsed time, GPS, accuracy, altitude, heading, α/β/γ 값을 함께 기록합니다.
   </div>
 
 <script>
@@ -301,9 +301,7 @@
     alpha: null,
     beta: null,
     gamma: null,
-    heading: null,          // rear-camera optical-axis heading
-    deviceHeading: null,    // legacy top-of-device heading (debug)
-    screenAngle: 0,
+    heading: null,
     absolute: null
   };
 
@@ -373,7 +371,7 @@
     const g = currentOrientation.gamma;
 
     orientationRawEl.textContent =
-      `α / β / γ: ${a == null ? "-" : a.toFixed(1)} / ${b == null ? "-" : b.toFixed(1)} / ${g == null ? "-" : g.toFixed(1)} · 화면 ${currentOrientation.screenAngle ?? 0}°`;
+      `α / β / γ: ${a == null ? "-" : a.toFixed(1)} / ${b == null ? "-" : b.toFixed(1)} / ${g == null ? "-" : g.toFixed(1)}`;
 
     timestampEl.textContent = formatTime(now);
 
@@ -400,77 +398,28 @@
     return ((deg % 360) + 360) % 360;
   }
 
-  function getScreenOrientationAngle() {
-    if (screen.orientation && typeof screen.orientation.angle === "number") {
-      return screen.orientation.angle;
-    }
-    // 구형 Chromium fallback
-    if (typeof window.orientation === "number") {
-      return window.orientation;
-    }
-    return 0;
-  }
-
-  /**
-   * DeviceOrientation(alpha, beta, gamma)로부터 후면 카메라 optical axis의
-   * 수평 방위각(0=N, 90=E, 180=S, 270=W)을 계산한다.
-   *
-   * W3C device coordinate convention에서 후면 카메라의 시선 벡터는
-   * 화면 법선의 반대 방향(-Z)으로 두고, Z-X'-Y'' Euler rotation을 적용한다.
-   * 그 벡터를 지면(X=East, Y=North)에 투영하여 atan2(East, North)로
-   * heading을 얻는다. 따라서 portrait/landscape roll에 독립적이다.
-   */
-  function calculateCameraHeading(alpha, beta, gamma) {
-    if (![alpha, beta, gamma].every(Number.isFinite)) return null;
-
-    const degToRad = Math.PI / 180;
-    const a = alpha * degToRad;
-    const b = beta * degToRad;
-    const g = gamma * degToRad;
-
-    const ca = Math.cos(a);
-    const sa = Math.sin(a);
-    const sb = Math.sin(b);
-    const cb = Math.cos(b);
-    const sg = Math.sin(g);
-    const cg = Math.cos(g);
-
-    // Rz(alpha) * Rx(beta) * Ry(gamma) * [0, 0, -1]
-    // rear-camera optical axis in Earth coordinates
-    const east  = -(ca * sg + sa * sb * cg);
-    const north = -sa * sg + ca * sb * cg;
-    const up    = -(cb * cg);
-
-    // 카메라가 거의 수직 상/하 방향이면 수평 방위각 자체가 불안정하다.
-    const horizontalLength = Math.hypot(east, north);
-    if (horizontalLength < 0.05) return null;
-
-    return normalizeHeading(Math.atan2(east, north) / degToRad);
-  }
-
   function onOrientation(event) {
     const alpha = event.alpha;
     const beta = event.beta;
     const gamma = event.gamma;
 
-    // 후면 카메라 시선 방향 기준 heading
-    const cameraHeading = calculateCameraHeading(alpha, beta, gamma);
+    let heading = null;
 
-    // 기존 360-alpha 값은 디버깅/비교용으로만 보존
-    let deviceHeading = null;
+    // 일부 브라우저/기기에서는 webkitCompassHeading을 직접 제공할 수 있음.
     if (typeof event.webkitCompassHeading === "number") {
-      deviceHeading = normalizeHeading(event.webkitCompassHeading);
-    } else if (typeof alpha === "number") {
-      deviceHeading = normalizeHeading(360 - alpha);
+      heading = normalizeHeading(event.webkitCompassHeading);
+    }
+    // Android Chrome 계열 fallback.
+    // alpha는 device z-axis 회전값이며, 단순 방위값으로 사용할 때 360-alpha 형태를 사용.
+    else if (typeof alpha === "number") {
+      heading = normalizeHeading(360 - alpha);
     }
 
     currentOrientation = {
       alpha,
       beta,
       gamma,
-      heading: cameraHeading,
-      deviceHeading,
-      screenAngle: getScreenOrientationAngle(),
+      heading,
       absolute: event.absolute ?? null
     };
   }
@@ -553,9 +502,6 @@
       gps_timestamp_ms: currentGPS.gpsTimestamp,
 
       heading_deg: currentOrientation.heading,
-      camera_heading_deg: currentOrientation.heading,
-      device_heading_deg: currentOrientation.deviceHeading,
-      screen_orientation_deg: currentOrientation.screenAngle,
       alpha_deg: currentOrientation.alpha,
       beta_deg: currentOrientation.beta,
       gamma_deg: currentOrientation.gamma,
@@ -698,9 +644,6 @@
       "gps_course_deg",
       "gps_timestamp_ms",
       "heading_deg",
-      "camera_heading_deg",
-      "device_heading_deg",
-      "screen_orientation_deg",
       "alpha_deg",
       "beta_deg",
       "gamma_deg",
@@ -728,9 +671,6 @@
             "gps_speed_mps",
             "gps_course_deg",
             "heading_deg",
-            "camera_heading_deg",
-            "device_heading_deg",
-            "screen_orientation_deg",
             "alpha_deg",
             "beta_deg",
             "gamma_deg"
@@ -760,140 +700,6 @@
     a.remove();
 
     setTimeout(() => URL.revokeObjectURL(url), 3000);
-  }
-
-  // 외부 라이브러리 없이 ZIP(Store 방식) 생성.
-  // Android Chrome에서 연속 자동 다운로드가 차단되는 문제를 피하기 위해
-  // WEBM + CSV를 ZIP 파일 하나로 묶어 한 번만 다운로드한다.
-  function makeCRCTable() {
-    const table = new Uint32Array(256);
-
-    for (let n = 0; n < 256; n++) {
-      let c = n;
-      for (let k = 0; k < 8; k++) {
-        c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-      }
-      table[n] = c >>> 0;
-    }
-    return table;
-  }
-
-  const crcTable = makeCRCTable();
-
-  function crc32(bytes) {
-    let crc = 0xFFFFFFFF;
-
-    for (let i = 0; i < bytes.length; i++) {
-      crc = crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
-    }
-
-    return (crc ^ 0xFFFFFFFF) >>> 0;
-  }
-
-  function dosDateTime(date = new Date()) {
-    const year = Math.max(1980, date.getFullYear());
-
-    const dosTime =
-      ((date.getHours() & 0x1F) << 11) |
-      ((date.getMinutes() & 0x3F) << 5) |
-      ((Math.floor(date.getSeconds() / 2)) & 0x1F);
-
-    const dosDate =
-      (((year - 1980) & 0x7F) << 9) |
-      (((date.getMonth() + 1) & 0x0F) << 5) |
-      (date.getDate() & 0x1F);
-
-    return { dosTime, dosDate };
-  }
-
-  function writeU16(view, offset, value) {
-    view.setUint16(offset, value, true);
-  }
-
-  function writeU32(view, offset, value) {
-    view.setUint32(offset, value >>> 0, true);
-  }
-
-  async function createZip(files) {
-    const encoder = new TextEncoder();
-    const parts = [];
-    const centralEntries = [];
-    let offset = 0;
-
-    const { dosTime, dosDate } = dosDateTime(new Date());
-
-    for (const file of files) {
-      const nameBytes = encoder.encode(file.name);
-      const dataBytes = new Uint8Array(await file.blob.arrayBuffer());
-      const crc = crc32(dataBytes);
-
-      const localHeader = new ArrayBuffer(30 + nameBytes.length);
-      const localView = new DataView(localHeader);
-
-      writeU32(localView, 0, 0x04034b50);
-      writeU16(localView, 4, 20);
-      writeU16(localView, 6, 0);
-      writeU16(localView, 8, 0);
-      writeU16(localView, 10, dosTime);
-      writeU16(localView, 12, dosDate);
-      writeU32(localView, 14, crc);
-      writeU32(localView, 18, dataBytes.length);
-      writeU32(localView, 22, dataBytes.length);
-      writeU16(localView, 26, nameBytes.length);
-      writeU16(localView, 28, 0);
-      new Uint8Array(localHeader, 30).set(nameBytes);
-
-      parts.push(new Uint8Array(localHeader));
-      parts.push(dataBytes);
-
-      const centralHeader = new ArrayBuffer(46 + nameBytes.length);
-      const centralView = new DataView(centralHeader);
-
-      writeU32(centralView, 0, 0x02014b50);
-      writeU16(centralView, 4, 20);
-      writeU16(centralView, 6, 20);
-      writeU16(centralView, 8, 0);
-      writeU16(centralView, 10, 0);
-      writeU16(centralView, 12, dosTime);
-      writeU16(centralView, 14, dosDate);
-      writeU32(centralView, 16, crc);
-      writeU32(centralView, 20, dataBytes.length);
-      writeU32(centralView, 24, dataBytes.length);
-      writeU16(centralView, 28, nameBytes.length);
-      writeU16(centralView, 30, 0);
-      writeU16(centralView, 32, 0);
-      writeU16(centralView, 34, 0);
-      writeU16(centralView, 36, 0);
-      writeU32(centralView, 38, 0);
-      writeU32(centralView, 42, offset);
-      new Uint8Array(centralHeader, 46).set(nameBytes);
-
-      centralEntries.push(new Uint8Array(centralHeader));
-      offset += localHeader.byteLength + dataBytes.length;
-    }
-
-    const centralStart = offset;
-    let centralSize = 0;
-
-    for (const entry of centralEntries) {
-      parts.push(entry);
-      centralSize += entry.byteLength;
-    }
-
-    const end = new ArrayBuffer(22);
-    const endView = new DataView(end);
-
-    writeU32(endView, 0, 0x06054b50);
-    writeU16(endView, 4, 0);
-    writeU16(endView, 6, 0);
-    writeU16(endView, 8, files.length);
-    writeU16(endView, 10, files.length);
-    writeU32(endView, 12, centralSize);
-    writeU32(endView, 16, centralStart);
-    writeU16(endView, 20, 0);
-
-    parts.push(new Uint8Array(end));
-    return new Blob(parts, { type: "application/zip" });
   }
 
   async function stopRecorderAndWait() {
@@ -931,9 +737,6 @@
       gps_course_deg: currentGPS.heading,
       gps_timestamp_ms: currentGPS.gpsTimestamp,
       heading_deg: currentOrientation.heading,
-      camera_heading_deg: currentOrientation.heading,
-      device_heading_deg: currentOrientation.deviceHeading,
-      screen_orientation_deg: currentOrientation.screenAngle,
       alpha_deg: currentOrientation.alpha,
       beta_deg: currentOrientation.beta,
       gamma_deg: currentOrientation.gamma,
@@ -951,19 +754,18 @@
     const csvText = buildCSV(sensorLog);
     const csvBlob = new Blob([csvText], { type: "text/csv;charset=utf-8" });
 
-    // Android Chrome에서 두 번째 자동 다운로드가 차단될 수 있으므로
-    // WEBM + CSV를 하나의 ZIP 파일로 저장한다.
-    const zipBlob = await createZip([
-      { name: `${fileBaseName}.webm`, blob: videoBlob },
-      { name: `${fileBaseName}.csv`, blob: csvBlob }
-    ]);
+    // 두 파일에 동일한 base name 사용 → 후처리 시 쉽게 매칭 가능.
+    downloadBlob(videoBlob, `${fileBaseName}.webm`);
 
-    downloadBlob(zipBlob, `${fileBaseName}.zip`);
+    // 모바일 브라우저의 연속 다운로드 처리 여유
+    setTimeout(() => {
+      downloadBlob(csvBlob, `${fileBaseName}.csv`);
+    }, 500);
 
     await cleanup(false);
 
     setStatus(
-      `저장 완료: ${fileBaseName}.zip (WEBM + CSV)`,
+      `저장 완료: ${fileBaseName}.webm / ${fileBaseName}.csv`,
       false
     );
   }
