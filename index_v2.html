@@ -203,145 +203,6 @@
         font-size: 17px;
       }
     }
-
-    .controls-bar {
-      flex: 0 0 auto;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-      padding: 10px 14px;
-      background: #172033;
-      border-bottom: 1px solid #2b3545;
-      font-size: 13px;
-      z-index: 9;
-    }
-
-    .control-group {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .control-label {
-      color: #9ca3af;
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    select,
-    input[type="range"] {
-      font-family: inherit;
-    }
-
-    select {
-      background: #0f172a;
-      color: #f8fafc;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 13px;
-      outline: none;
-      cursor: pointer;
-      max-width: 220px;
-    }
-
-    select:focus {
-      border-color: #3b82f6;
-    }
-
-    select:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .zoom-preset-btns {
-      display: flex;
-      gap: 4px;
-    }
-
-    .zoom-btn {
-      background: #1e293b;
-      color: #e2e8f0;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 5px 8px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      min-width: 38px;
-      text-align: center;
-    }
-
-    .zoom-btn.active {
-      background: #2563eb;
-      color: #ffffff;
-      border-color: #3b82f6;
-    }
-
-    .zoom-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    .zoom-slider-container {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    input[type="range"] {
-      accent-color: #3b82f6;
-      cursor: pointer;
-      width: 110px;
-    }
-
-    .zoom-badge {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 4px;
-      padding: 2px 6px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #38bdf8;
-      min-width: 42px;
-      text-align: center;
-    }
-
-    .video-info-badge {
-      margin-left: auto;
-      font-size: 12px;
-      color: #38bdf8;
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      padding: 4px 8px;
-      border-radius: 6px;
-      white-space: nowrap;
-    }
-
-    @media (max-width: 760px) {
-      .controls-bar {
-        gap: 8px;
-        padding: 8px;
-      }
-
-      select {
-        max-width: 150px;
-        font-size: 12px;
-        padding: 5px 6px;
-      }
-
-      input[type="range"] {
-        width: 80px;
-      }
-
-      .video-info-badge {
-        margin-left: 0;
-        width: 100%;
-        text-align: center;
-      }
-    }
   </style>
 </head>
 
@@ -351,42 +212,6 @@
     <button id="startBtn">시작</button>
     <button id="saveStopBtn" disabled>저장 및 종료</button>
     <button id="stopBtn" disabled>그냥 종료</button>
-  </div>
-
-  <div class="controls-bar">
-    <div class="control-group">
-      <span class="control-label">📷 렌즈:</span>
-      <select id="cameraSelect">
-        <option value="facing_environment">📷 후면 기본 카메라</option>
-        <option value="facing_user">🤳 전면 기본 카메라</option>
-      </select>
-    </div>
-
-    <div class="control-group">
-      <span class="control-label">📐 해상도:</span>
-      <select id="resSelect">
-        <option value="1920x1080">1080p (FHD 1920×1080)</option>
-      </select>
-    </div>
-
-    <div class="control-group">
-      <span class="control-label">🔍 줌:</span>
-      <div class="zoom-preset-btns" id="zoomPresetBtns">
-        <button type="button" class="zoom-btn" data-zoom="0.5" disabled>0.5x</button>
-        <button type="button" class="zoom-btn active" data-zoom="1" disabled>1x</button>
-        <button type="button" class="zoom-btn" data-zoom="2" disabled>2x</button>
-        <button type="button" class="zoom-btn" data-zoom="3" disabled>3x</button>
-        <button type="button" class="zoom-btn" data-zoom="5" disabled>5x</button>
-      </div>
-      <div class="zoom-slider-container">
-        <input type="range" id="zoomRange" min="1" max="1" step="0.1" value="1" disabled />
-        <span id="zoomValue" class="zoom-badge">1.0x</span>
-      </div>
-    </div>
-
-    <div id="videoInfoBadge" class="video-info-badge">
-      실제 해상도: 대기 중
-    </div>
   </div>
 
   <main class="main">
@@ -442,13 +267,6 @@
       const statusBox = document.getElementById("statusBox");
       const statusText = document.getElementById("statusText");
 
-      const cameraSelect = document.getElementById("cameraSelect");
-      const resSelect = document.getElementById("resSelect");
-      const zoomPresetBtns = document.getElementById("zoomPresetBtns");
-      const zoomRange = document.getElementById("zoomRange");
-      const zoomValueEl = document.getElementById("zoomValue");
-      const videoInfoBadge = document.getElementById("videoInfoBadge");
-
       const latitudeEl = document.getElementById("latitude");
       const longitudeEl = document.getElementById("longitude");
       const gpsAccuracyEl = document.getElementById("gpsAccuracy");
@@ -471,16 +289,6 @@
       let startEpochMs = 0;
       let startPerfMs = 0;
       let fileBaseName = "";
-
-      let currentZoom = 1.0;
-      let zoomCapabilities = null;
-
-      const STANDARD_RESOLUTIONS = [
-        { label: "4K (3840×2160)", width: 3840, height: 2160 },
-        { label: "1080p (FHD 1920×1080)", width: 1920, height: 1080 },
-        { label: "720p (HD 1280×720)", width: 1280, height: 720 },
-        { label: "480p (SD 640×480)", width: 640, height: 480 }
-      ];
 
       let currentGPS = {
         latitude: null,
@@ -575,8 +383,6 @@
 
         elapsedEl.textContent =
           recording ? `경과: ${formatElapsed(performance.now() - startPerfMs)}` : "경과: -";
-
-        updateVideoInfoBadge();
       }
 
       function onPosition(position) {
@@ -825,233 +631,6 @@
         }
       }
 
-      async function enumerateCameras() {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-          return;
-        }
-
-        try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const videoDevices = devices.filter((d) => d.kind === "videoinput");
-
-          const currentVal = cameraSelect.value;
-          cameraSelect.innerHTML = "";
-
-          const defBackOpt = document.createElement("option");
-          defBackOpt.value = "facing_environment";
-          defBackOpt.textContent = "📷 후면 기본 카메라";
-          cameraSelect.appendChild(defBackOpt);
-
-          const defFrontOpt = document.createElement("option");
-          defFrontOpt.value = "facing_user";
-          defFrontOpt.textContent = "🤳 전면 기본 카메라";
-          cameraSelect.appendChild(defFrontOpt);
-
-          if (videoDevices.length > 0) {
-            const optGroup = document.createElement("optgroup");
-            optGroup.label = "감지된 개별 카메라 렌즈";
-
-            videoDevices.forEach((dev, idx) => {
-              const opt = document.createElement("option");
-              opt.value = dev.deviceId;
-              let label = dev.label || `카메라 렌즈 #${idx + 1}`;
-              if (!dev.label) {
-                label = `카메라 #${idx + 1} (${dev.deviceId.slice(0, 6)}...)`;
-              }
-              opt.textContent = label;
-              optGroup.appendChild(opt);
-            });
-
-            cameraSelect.appendChild(optGroup);
-          }
-
-          if (currentVal && [...cameraSelect.options].some((o) => o.value === currentVal)) {
-            cameraSelect.value = currentVal;
-          } else {
-            cameraSelect.value = "facing_environment";
-          }
-        } catch (err) {
-          console.warn("Camera enumeration error:", err);
-        }
-      }
-
-      function updateResolutionOptions(track) {
-        const capabilities = (track && typeof track.getCapabilities === "function")
-          ? track.getCapabilities()
-          : {};
-
-        const maxW = capabilities.width ? capabilities.width.max : 3840;
-        const maxH = capabilities.height ? capabilities.height.max : 2160;
-
-        let supported = STANDARD_RESOLUTIONS.filter((res) => {
-          const fitNormal = res.width <= maxW && res.height <= maxH;
-          const fitRotated = res.height <= maxW && res.width <= maxH;
-          return fitNormal || fitRotated;
-        });
-
-        if (supported.length === 0) {
-          supported = [{ label: "1080p (FHD 1920×1080)", width: 1920, height: 1080 }];
-        }
-
-        const currentVal = resSelect.value;
-        resSelect.innerHTML = "";
-
-        supported.forEach((res) => {
-          const val = `${res.width}x${res.height}`;
-          const opt = document.createElement("option");
-          opt.value = val;
-          opt.textContent = res.label;
-          resSelect.appendChild(opt);
-        });
-
-        if ([...resSelect.options].some((o) => o.value === currentVal)) {
-          resSelect.value = currentVal;
-        } else {
-          const fhd = supported.find((r) => r.width === 1920);
-          resSelect.value = fhd ? "1920x1080" : `${supported[0].width}x${supported[0].height}`;
-        }
-      }
-
-      function updateZoomCapabilities(track) {
-        const capabilities = (track && typeof track.getCapabilities === "function")
-          ? track.getCapabilities()
-          : {};
-        const settings = (track && typeof track.getSettings === "function")
-          ? track.getSettings()
-          : {};
-
-        if (capabilities.zoom) {
-          zoomCapabilities = capabilities.zoom;
-          const min = zoomCapabilities.min || 1;
-          const max = zoomCapabilities.max || 1;
-          const step = zoomCapabilities.step || 0.1;
-          const curZoom = settings.zoom || currentZoom || min;
-
-          zoomRange.min = min;
-          zoomRange.max = max;
-          zoomRange.step = step;
-          zoomRange.value = curZoom;
-          zoomRange.disabled = (min === max);
-
-          zoomValueEl.textContent = `${Number(curZoom).toFixed(1)}x`;
-
-          const presetBtns = zoomPresetBtns.querySelectorAll(".zoom-btn");
-          presetBtns.forEach((btn) => {
-            const zVal = parseFloat(btn.dataset.zoom);
-            const isSupported = zVal >= min && zVal <= max;
-            btn.disabled = !isSupported;
-            btn.classList.toggle("active", Math.abs(zVal - curZoom) < 0.05);
-          });
-        } else {
-          zoomCapabilities = null;
-          zoomRange.disabled = true;
-          zoomRange.min = 1;
-          zoomRange.max = 1;
-          zoomRange.value = 1;
-          zoomValueEl.textContent = "미지원";
-
-          const presetBtns = zoomPresetBtns.querySelectorAll(".zoom-btn");
-          presetBtns.forEach((btn) => {
-            btn.disabled = true;
-            btn.classList.remove("active");
-          });
-        }
-      }
-
-      async function applyZoom(targetZoom) {
-        if (!stream) return;
-        const track = stream.getVideoTracks()[0];
-        if (!track) return;
-
-        const caps = zoomCapabilities || (typeof track.getCapabilities === "function" ? track.getCapabilities().zoom : null);
-        if (!caps) return;
-
-        const clampedZoom = Math.min(Math.max(targetZoom, caps.min), caps.max);
-        currentZoom = clampedZoom;
-
-        try {
-          await track.applyConstraints({
-            advanced: [{ zoom: clampedZoom }]
-          });
-          zoomRange.value = clampedZoom;
-          zoomValueEl.textContent = `${clampedZoom.toFixed(1)}x`;
-
-          const presetBtns = zoomPresetBtns.querySelectorAll(".zoom-btn");
-          presetBtns.forEach((btn) => {
-            const zVal = parseFloat(btn.dataset.zoom);
-            btn.classList.toggle("active", Math.abs(zVal - clampedZoom) < 0.05);
-          });
-        } catch (err) {
-          console.warn("Failed to apply zoom constraint:", err);
-        }
-      }
-
-      function updateVideoInfoBadge() {
-        if (!videoInfoBadge) return;
-
-        if (video && video.videoWidth && video.videoHeight) {
-          const w = video.videoWidth;
-          const h = video.videoHeight;
-          const track = stream ? stream.getVideoTracks()[0] : null;
-          const settings = track && typeof track.getSettings === "function" ? track.getSettings() : {};
-          const fps = settings.frameRate ? Math.round(settings.frameRate) : "";
-          const zoomText = currentZoom > 1 ? ` | ${currentZoom.toFixed(1)}x 줌` : "";
-          videoInfoBadge.textContent = `실제 해상도: ${w}×${h}${fps ? ` @ ${fps}fps` : ""}${zoomText}`;
-        } else {
-          videoInfoBadge.textContent = stream ? "해상도 준비 중..." : "실제 해상도: 대기 중";
-        }
-      }
-
-      async function initOrUpdateCameraStream() {
-        if (recording) return;
-
-        const selectedCam = cameraSelect.value || "facing_environment";
-        const [targetW, targetH] = (resSelect.value || "1920x1080").split("x").map(Number);
-
-        let videoConstraints = {
-          width: { ideal: targetW },
-          height: { ideal: targetH },
-          frameRate: { ideal: 30, max: 30 }
-        };
-
-        if (selectedCam === "facing_environment") {
-          videoConstraints.facingMode = { ideal: "environment" };
-        } else if (selectedCam === "facing_user") {
-          videoConstraints.facingMode = { ideal: "user" };
-        } else if (selectedCam) {
-          videoConstraints.deviceId = { exact: selectedCam };
-        } else {
-          videoConstraints.facingMode = { ideal: "environment" };
-        }
-
-        if (stream) {
-          stream.getTracks().forEach((t) => t.stop());
-          stream = null;
-        }
-
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: videoConstraints,
-            audio: false
-          });
-
-          video.srcObject = stream;
-          const track = stream.getVideoTracks()[0];
-
-          await enumerateCameras();
-
-          if (track) {
-            updateResolutionOptions(track);
-            updateZoomCapabilities(track);
-          }
-
-          updateVideoInfoBadge();
-          video.play().catch(() => { });
-        } catch (err) {
-          console.error("Camera stream error:", err);
-        }
-      }
-
       async function startRecording() {
         if (recording) return;
 
@@ -1070,20 +649,17 @@
 
           setStatus("카메라 및 센서 준비 중...");
 
-          if (!stream || !stream.active || !stream.getVideoTracks().length) {
-            await initOrUpdateCameraStream();
-          }
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: "environment" },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 },
+              frameRate: { ideal: 30, max: 30 }
+            },
+            audio: false
+          });
 
-          if (!stream) {
-            setStatus("카메라 스트림을 가져올 수 없습니다.", false);
-            return;
-          }
-
-          const track = stream.getVideoTracks()[0];
-          if (track) {
-            updateResolutionOptions(track);
-            updateZoomCapabilities(track);
-          }
+          video.srcObject = stream;
 
           startGeolocation();
           await requestWakeLock();
@@ -1111,9 +687,6 @@
           startEpochMs = Date.now();
           startPerfMs = performance.now();
           recording = true;
-
-          cameraSelect.disabled = true;
-          resSelect.disabled = true;
 
           // 1초 단위 Blob chunk 생성.
           mediaRecorder.start(1000);
@@ -1486,9 +1059,6 @@
         saveStopBtn.disabled = true;
         stopBtn.disabled = true;
 
-        cameraSelect.disabled = false;
-        resSelect.disabled = false;
-
         if (resetMessage) {
           setStatus("대기 중", false);
         }
@@ -1497,27 +1067,6 @@
       startBtn.addEventListener("click", startRecording);
       saveStopBtn.addEventListener("click", saveAndStop);
       stopBtn.addEventListener("click", stopWithoutSaving);
-
-      cameraSelect.addEventListener("change", () => {
-        initOrUpdateCameraStream();
-      });
-
-      resSelect.addEventListener("change", () => {
-        initOrUpdateCameraStream();
-      });
-
-      zoomRange.addEventListener("input", (e) => {
-        applyZoom(parseFloat(e.target.value));
-      });
-
-      zoomPresetBtns.addEventListener("click", (e) => {
-        const btn = e.target.closest(".zoom-btn");
-        if (btn && !btn.disabled && btn.dataset.zoom) {
-          applyZoom(parseFloat(btn.dataset.zoom));
-        }
-      });
-
-      video.addEventListener("loadedmetadata", updateVideoInfoBadge);
 
       document.addEventListener("visibilitychange", async () => {
         if (document.visibilityState === "visible" && recording) {
@@ -1535,9 +1084,8 @@
       updateUI();
       uiTimer = setInterval(updateUI, 100);
 
-      // 센서 및 카메라 탐색 초기화
+      // non-iOS 또는 이미 권한이 허용된 환경을 위해 초기 센서 리스너 등록
       attachOrientationListeners();
-      enumerateCameras();
     })();
   </script>
 </body>
