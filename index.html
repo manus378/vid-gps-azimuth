@@ -433,7 +433,7 @@
         let absAlpha = null;
 
         // iOS Safari: webkitCompassHeading (0=북쪽, 시계방향)
-        if (typeof webkitCompassHeading === "number" && Number.isFinite(webkitCompassHeading)) {
+        if (typeof webkitCompassHeading === "number" && Number.isFinite(webkitCompassHeading) && webkitCompassHeading >= 0) {
           absAlpha = normalizeHeading(360 - webkitCompassHeading);
         } else if (Number.isFinite(alpha)) {
           // Android / Standard W3C
@@ -462,7 +462,7 @@
         // 카메라가 거의 수직 상/하 방향(하늘/땅)을 향하면 수평 방위각이 불안정함
         const horizontalLength = Math.hypot(east, north);
         if (horizontalLength < 0.1) {
-          if (typeof webkitCompassHeading === "number" && Number.isFinite(webkitCompassHeading)) {
+          if (typeof webkitCompassHeading === "number" && Number.isFinite(webkitCompassHeading) && webkitCompassHeading >= 0) {
             return normalizeHeading(webkitCompassHeading);
           }
           return normalizeHeading(360 - absAlpha);
@@ -483,7 +483,7 @@
 
         // 디바이스 상단 기준 heading (디버그/비교용)
         let deviceHeading = null;
-        if (typeof webkitCompassHeading === "number" && Number.isFinite(webkitCompassHeading)) {
+        if (typeof webkitCompassHeading === "number" && Number.isFinite(webkitCompassHeading) && webkitCompassHeading >= 0) {
           deviceHeading = normalizeHeading(webkitCompassHeading);
         } else if (typeof alpha === "number" && Number.isFinite(alpha)) {
           deviceHeading = normalizeHeading(360 - alpha);
@@ -540,10 +540,16 @@
         const allowed = await requestOrientationPermissionIfNeeded();
 
         if (!allowed) {
-          setStatus("방향 센서 권한이 허용되지 않았습니다.");
-          return;
+          setStatus("방향 센서 권한이 허용되지 않았습니다. iOS 설정이나 권한을 확인해 주세요.");
+          alert("방향 센서(DeviceOrientation) 접근 권한이 거부되었습니다.\niOS 설정 > Safari > 동작 및 방향 접근 권한을 확인하거나 허용 후 다시 시도해 주세요.");
+          return false;
         }
 
+        attachOrientationListeners();
+        return true;
+      }
+
+      function attachOrientationListeners() {
         // Android & iOS 기기 호환성을 위해 absolute 및 일반 deviceorientation 모두 등록
         if ("ondeviceorientationabsolute" in window) {
           window.addEventListener("deviceorientationabsolute", onOrientation, true);
@@ -634,6 +640,13 @@
         }
 
         try {
+          // iOS Safari/Chrome 권한 필수: 비동기 await(getUserMedia) 호출 전
+          // 사용자 버튼 클릭 동기 맥락(User Gesture)에서 최우선으로 센서 권한을 요청합니다.
+          const orientationOk = await startOrientation();
+          if (!orientationOk) {
+            return;
+          }
+
           setStatus("카메라 및 센서 준비 중...");
 
           stream = await navigator.mediaDevices.getUserMedia({
@@ -649,7 +662,6 @@
           video.srcObject = stream;
 
           startGeolocation();
-          await startOrientation();
           await requestWakeLock();
 
           recordedChunks = [];
@@ -1072,6 +1084,8 @@
       updateUI();
       uiTimer = setInterval(updateUI, 100);
 
+      // non-iOS 또는 이미 권한이 허용된 환경을 위해 초기 센서 리스너 등록
+      attachOrientationListeners();
     })();
   </script>
 </body>
